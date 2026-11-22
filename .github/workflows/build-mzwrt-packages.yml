@@ -25,6 +25,17 @@ jobs:
           echo "==== Patched Makefile ===="
           cat Makefile
 
+      - name: Generate .config for SDK
+        run: |
+          cd sdk
+          echo "CONFIG_TARGET_mediatek=y" > .config
+          echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
+          echo "CONFIG_TARGET_BOARD=mediatek" >> .config
+          echo "CONFIG_TARGET_SUBTARGET=filogic" >> .config
+          echo "CONFIG_PACKAGE_nikki=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-nikki=y" >> .config
+          make defconfig
+
       - name: Feeds update & compile
         run: |
           cd sdk
