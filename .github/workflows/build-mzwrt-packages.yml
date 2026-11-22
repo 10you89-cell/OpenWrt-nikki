@@ -1,5 +1,4 @@
 name: build-packages
-
 on:
   workflow_dispatch:
 
@@ -16,27 +15,31 @@ jobs:
           - openwrt-24.10
 
     steps:
-      - name: Clone nikki upstream source and patch
+      - name: Download ImmortalWrt SDK
         run: |
-          git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git nikki-src
-          cd nikki-src/nikki
-          # 删除 kmod-dummy 依赖
+          SDK_URL="https://downloads.immortalwrt.org/releases/${{ matrix.branch }}/targets/mediatek/filogic/immortalwrt-sdk-${{ matrix.branch }}-mediatek-filogic_gcc-13.2.0_musl.Linux-x86_64.tar.xz"
+          wget -q -O sdk.tar.xz "$SDK_URL"
+          tar -Jxf sdk.tar.xz
+          mv $(ls -d immortalwrt-sdk-*) sdk
+      
+      - name: Prepare nikki source and patch
+        run: |
+          cd sdk
+          git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git feeds/nikki
+          cd feeds/nikki/nikki
           sed -i 's/ +kmod-dummy//g' Makefile
-          echo "===== Patched Makefile ====="
+          echo "==== 已经修改后的Makefile ===="
           cat Makefile
 
-      - name: Build with openwrt/gh-action-sdk
-        uses: openwrt/gh-action-sdk@main
-        env:
-          ARCH: ${{ matrix.arch }}-${{ matrix.branch }}
-          FEEDNAME: nikki
-          PACKAGES: mihomo-meta nikki luci-app-nikki
-          NO_REFRESH_CHECK: true
-        with:
-          feed: ${{ github.workspace }}/nikki-src
+      - name: Feeds install & compile
+        run: |
+          cd sdk
+          ./scripts/feeds update nikki
+          ./scripts/feeds install mihomo-meta nikki luci-app-nikki
+          make package/nikki/compile -j$(nproc) V=s
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: nikki_${{ matrix.arch }}-${{ matrix.branch }}
-          path: bin/packages/${{ matrix.arch }}/nikki
+          path: sdk/bin/packages/${{ matrix.arch }}/nikki
