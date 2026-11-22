@@ -7,9 +7,9 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download ImmortalWrt 24.10.6 SDK mediatek/filogic
+      - name: Download ImmortalWrt 24.10.6 SDK mediatek/filogic (official)
         run: |
-          SDK_URL="https://mirror.zju.edu.cn/immortalwrt/releases/24.10.6/targets/mediatek/filogic/immortalwrt-sdk-24.10.6-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+          SDK_URL="https://downloads.immortalwrt.org/releases/24.10.6/targets/mediatek/filogic/immortalwrt-sdk-24.10.6-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
           wget -q -O sdk.tar.zst "$SDK_URL"
           apt update && apt install -y zstd
           zstd -d sdk.tar.zst
@@ -35,5 +35,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: nikki-mediatek-filogic-24.10.6
+          name: nikki-mediatek-filogic-24.10
           path: sdk/bin/packages/aarch64_cortex-a53/nikki
