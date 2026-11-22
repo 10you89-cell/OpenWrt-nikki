@@ -35,6 +35,7 @@ jobs:
           cd openwrt
           echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> feeds.conf.default
           ./scripts/feeds update nikki
+          ./scripts/feeds install mihomo-meta
           ./scripts/feeds install nikki luci-app-nikki luci-i18n-nikki-zh-cn
 
       - name: Patch Makefile, remove kmod-dummy dependency
@@ -43,15 +44,17 @@ jobs:
           sed -i 's/ +kmod-dummy//g' Makefile
           cat Makefile
 
-      - name: Generate config
+      - name: Generate target config (mediatek/filogic)
         run: |
           cd openwrt
-          make defconfig
+          # 生成 mediatek/filogic 平台基础配置
+          ./scripts/gen_config.py target mediatek filogic
+          # 追加需要编译的包
           echo "CONFIG_PACKAGE_mihomo-meta=y" >> .config
           echo "CONFIG_PACKAGE_nikki=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-nikki=y" >> .config
           echo "CONFIG_PACKAGE_luci-i18n-nikki-zh-cn=y" >> .config
-          make olddefconfig
+          make olddefconfig V=s
 
       - name: Compile packages
         run: |
