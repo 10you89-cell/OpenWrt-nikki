@@ -7,7 +7,7 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download ImmortalWrt 24.10.6 SDK mediatek/filogic (official)
+      - name: Download ImmortalWrt 24.10.6 SDK mediatek/filogic official
         run: |
           SDK_URL="https://downloads.immortalwrt.org/releases/24.10.6/targets/mediatek/filogic/immortalwrt-sdk-24.10.6-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
           wget -q -O sdk.tar.zst "$SDK_URL"
@@ -16,31 +16,37 @@ jobs:
           tar -xf sdk.tar
           mv $(ls -d immortalwrt-sdk-*) sdk
       
-      - name: Prepare nikki source and patch (remove kmod-dummy)
+      - name: Prepare nikki source and patch (remove kmod-dummy dependency)
         run: |
           cd sdk
+          rm -rf feeds/nikki
           git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git feeds/nikki
           cd feeds/nikki/nikki
           sed -i 's/ +kmod-dummy//g' Makefile
-          echo "==== Patched Makefile ===="
           cat Makefile
 
-      - name: Generate .config for SDK
+      - name: Feeds update and install
         run: |
           cd sdk
-          echo "CONFIG_TARGET_mediatek=y" > .config
-          echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
-          echo "CONFIG_TARGET_BOARD=mediatek" >> .config
-          echo "CONFIG_TARGET_SUBTARGET=filogic" >> .config
-          echo "CONFIG_PACKAGE_nikki=y" >> .config
-          echo "CONFIG_PACKAGE_luci-app-nikki=y" >> .config
-          make defconfig
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
 
-      - name: Feeds update & compile
+      - name: Generate base config & defconfig
         run: |
           cd sdk
-          ./scripts/feeds update nikki
-          ./scripts/feeds install mihomo-meta nikki luci-app-nikki
+          cat > .config <<EOF
+CONFIG_TARGET_mediatek=y
+CONFIG_TARGET_mediatek_filogic=y
+CONFIG_TARGET_BOARD="mediatek"
+CONFIG_TARGET_SUBTARGET="filogic"
+CONFIG_PACKAGE_nikki=m
+CONFIG_PACKAGE_luci-app-nikki=m
+EOF
+          make defconfig > /dev/null
+
+      - name: Build nikki package only
+        run: |
+          cd sdk
           make package/nikki/compile -j$(nproc) V=s
 
       - name: Upload artifacts
