@@ -33,50 +33,38 @@ jobs:
           cd sdk
           sed -i 's/ +kmod-dummy//g' feeds/nikki/nikki/Makefile
 
-      - name: Patch mihomo-alpha to use prebuilt binary (skip go compile)
+      - name: Patch mihomo-alpha to use prebuilt binary
         run: |
-          cd sdk
-          # 这里替换mihomo-alpha Makefile，禁用源码编译，切换为下载预编译
-          cat > feeds/nikki/mihomo-alpha/Makefile <<'EOF'
-include $(TOPDIR)/rules.mk
-
-PKG_NAME:=mihomo-alpha
-PKG_VERSION:=v1.18.7
-PKG_RELEASE:=1
-
-PKG_SOURCE:=mihomo-linux-arm64
-PKG_SOURCE_URL:=https://github.com/MetaCubeX/mihomo/releases/download/v1.18.7/
-PKG_HASH:=skip
-
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
-PKG_BUILD_PARALLEL:=0
-
-include $(INCLUDE_DIR)/package.mk
-
-define Package/mihomo-alpha
-  SECTION:=net
-  CATEGORY:=Network
-  TITLE:=Mihomo Alpha
-  DEPENDS:=@(aarch64) +ca-bundle
-  URL:=https://github.com/MetaCubeX/mihomo
-endef
-
-define Build/Prepare
-	mkdir -p $(PKG_BUILD_DIR)
-	wget -qO $(PKG_BUILD_DIR)/mihomo $(PKG_SOURCE_URL)/mihomo-linux-arm64-v1.18.7
-	chmod +x $(PKG_BUILD_DIR)/mihomo
-endef
-
-define Build/Compile
-endef
-
-define Package/mihomo-alpha/install
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/mihomo $(1)/usr/bin/mihomo
-endef
-
-$(eval $(call BuildPackage,mihomo-alpha))
-EOF
+          cd sdk/feeds/nikki/mihomo-alpha
+          printf 'include $(TOPDIR)/rules.mk\n' > Makefile
+          printf 'PKG_NAME:=mihomo-alpha\n' >> Makefile
+          printf 'PKG_VERSION:=v1.18.7\n' >> Makefile
+          printf 'PKG_RELEASE:=1\n' >> Makefile
+          printf 'PKG_SOURCE:=mihomo-linux-arm64\n' >> Makefile
+          printf 'PKG_SOURCE_URL:=https://github.com/MetaCubeX/mihomo/releases/download/v1.18.7/\n' >> Makefile
+          printf 'PKG_HASH:=skip\n' >> Makefile
+          printf 'PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)\n' >> Makefile
+          printf 'PKG_BUILD_PARALLEL:=0\n' >> Makefile
+          printf 'include $(INCLUDE_DIR)/package.mk\n' >> Makefile
+          printf 'define Package/mihomo-alpha\n' >> Makefile
+          printf '  SECTION:=net\n' >> Makefile
+          printf '  CATEGORY:=Network\n' >> Makefile
+          printf '  TITLE:=Mihomo Alpha\n' >> Makefile
+          printf '  DEPENDS:=@(aarch64) +ca-bundle\n' >> Makefile
+          printf '  URL:=https://github.com/MetaCubeX/mihomo\n' >> Makefile
+          printf 'endef\n' >> Makefile
+          printf 'define Build/Prepare\n' >> Makefile
+          printf '\tmkdir -p $(PKG_BUILD_DIR)\n' >> Makefile
+          printf '\twget -qO $(PKG_BUILD_DIR)/mihomo $(PKG_SOURCE_URL)/mihomo-linux-arm64-v1.18.7\n' >> Makefile
+          printf '\tchmod +x $(PKG_BUILD_DIR)/mihomo\n' >> Makefile
+          printf 'endef\n' >> Makefile
+          printf 'define Build/Compile\n' >> Makefile
+          printf 'endef\n' >> Makefile
+          printf 'define Package/mihomo-alpha/install\n' >> Makefile
+          printf '\t$(INSTALL_DIR) $(1)/usr/bin\n' >> Makefile
+          printf '\t$(INSTALL_BIN) $(PKG_BUILD_DIR)/mihomo $(1)/usr/bin/mihomo\n' >> Makefile
+          printf 'endef\n' >> Makefile
+          printf '$(eval $(call BuildPackage,mihomo-alpha))\n' >> Makefile
 
       - name: Write config
         run: |
