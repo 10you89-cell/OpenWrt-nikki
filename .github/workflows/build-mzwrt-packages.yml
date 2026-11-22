@@ -1,0 +1,66 @@
+name: build-packages
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.arch }}-${{ matrix.branch }} build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        arch:
+          - aarch64_cortex-a53
+        branch:
+          - openwrt-24.10
+
+    steps:
+      - name: Checkout ImmortalWrt
+        uses: actions/checkout@v6
+        with:
+          repository: immortalwrt/immortalwrt
+          ref: ${{ matrix.branch }}
+          path: openwrt
+
+      - name: Install dependencies
+        run: |
+          cd openwrt
+          sudo apt update
+          sudo apt install -y build-essential clang flex bison g++ gawk gcc-multilib g++-multilib \
+          gettext git libncurses-dev libssl-dev python3 python3-pip python3-setuptools rsync swig unzip wget zlib1g-dev
+
+      - name: Add nikki feed
+        run: |
+          cd openwrt
+          echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> feeds.conf.default
+          ./scripts/feeds update nikki
+          ./scripts/feeds install nikki luci-app-nikki luci-i18n-nikki-zh-cn
+
+      - name: Patch Makefile, remove kmod-dummy dependency
+        run: |
+          cd openwrt/feeds/nikki/nikki
+          sed -i 's/ +kmod-dummy//g' Makefile
+          cat Makefile
+
+      - name: Generate config
+        run: |
+          cd openwrt
+          make defconfig
+          echo "CONFIG_PACKAGE_mihomo-meta=y" >> .config
+          echo "CONFIG_PACKAGE_nikki=y" >> .config
+          echo "CONFIG_PACKAGE_luci-app-nikki=y" >> .config
+          echo "CONFIG_PACKAGE_luci-i18n-nikki-zh-cn=y" >> .config
+          make olddefconfig
+
+      - name: Compile packages
+        run: |
+          cd openwrt
+          make package/nikki/compile -j$(nproc) V=s
+          make package/luci-app-nikki/compile -j$(nproc) V=s
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nikki_${{ matrix.arch }}-${{ matrix.branch }}
+          path: openwrt/bin/packages/${{ matrix.arch }}/nikki
