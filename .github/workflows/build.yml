@@ -16,16 +16,25 @@ jobs:
           tar -xf sdk.tar
           mv $(ls -d immortalwrt-sdk-*) sdk
 
-      - name: Get nikki source and patch (remove kmod-dummy)
+      - name: Register nikki feed
         run: |
           cd sdk
-          rm -rf package/nikki
-          git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git package/nikki
-          cd package/nikki/nikki
-          sed -i 's/ +kmod-dummy//g' Makefile
-          cat Makefile
+          echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> feeds.conf.default
+          cat feeds.conf.default
 
-      - name: Write config and defconfig
+      - name: Feeds update & install
+        run: |
+          cd sdk
+          ./scripts/feeds update nikki
+          ./scripts/feeds install nikki
+
+      - name: Patch to remove kmod-dummy
+        run: |
+          cd sdk
+          sed -i 's/ +kmod-dummy//g' feeds/nikki/nikki/Makefile
+          cat feeds/nikki/nikki/Makefile
+
+      - name: Write config
         run: |
           cd sdk
           echo CONFIG_TARGET_mediatek=y > .config
@@ -33,13 +42,12 @@ jobs:
           echo CONFIG_TARGET_BOARD=mediatek >> .config
           echo CONFIG_TARGET_SUBTARGET=filogic >> .config
           echo CONFIG_PACKAGE_nikki=m >> .config
-          echo CONFIG_PACKAGE_luci-app-nikki=m >> .config
           make defconfig > /dev/null
 
-      - name: Compile nikki
+      - name: Compile nikki only
         run: |
           cd sdk
-          make package/nikki/compile -j$(nproc) V=s
+          make package/feeds/nikki/nikki/compile -j$(nproc) V=s
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
