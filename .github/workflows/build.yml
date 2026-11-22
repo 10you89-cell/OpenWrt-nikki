@@ -16,21 +16,14 @@ jobs:
           tar -xf sdk.tar
           mv $(ls -d immortalwrt-sdk-*) sdk
 
-      - name: Patch nikki
+      - name: Get nikki source and patch (remove kmod-dummy)
         run: |
           cd sdk
-          rm -rf feeds/nikki
-          git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git feeds/nikki
-          cd feeds/nikki/nikki
+          rm -rf package/nikki
+          git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git package/nikki
+          cd package/nikki/nikki
           sed -i 's/ +kmod-dummy//g' Makefile
           cat Makefile
-
-      - name: Feeds update and install
-        run: |
-          cd sdk
-          ./scripts/feeds update -a
-          ./scripts/feeds install -a
-          ls -la package/feeds/nikki/
 
       - name: Write config and defconfig
         run: |
@@ -46,7 +39,7 @@ jobs:
       - name: Compile nikki
         run: |
           cd sdk
-          make package/feeds/nikki/nikki/compile -j$(nproc) V=s
+          make package/nikki/compile -j$(nproc) V=s
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
