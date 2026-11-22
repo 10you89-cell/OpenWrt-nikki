@@ -36,8 +36,8 @@ jobs:
           cd sdk
           echo "CONFIG_TARGET_mediatek=y" > .config
           echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
-          echo "CONFIG_TARGET_BOARD=\"mediatek\"" >> .config
-          echo "CONFIG_TARGET_SUBTARGET=\"filogic\"" >> .config
+          echo "CONFIG_TARGET_BOARD=mediatek" >> .config
+          echo "CONFIG_TARGET_SUBTARGET=filogic" >> .config
           echo "CONFIG_PACKAGE_nikki=m" >> .config
           echo "CONFIG_PACKAGE_luci-app-nikki=m" >> .config
           make defconfig > /dev/null
