@@ -25,21 +25,29 @@ jobs:
           sed -i 's/ +kmod-dummy//g' Makefile
           cat Makefile
 
-      - name: Feeds
+      - name: Feeds update and install
         run: |
           cd sdk
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Write config
-        run: cd sdk && printf '%s\n' CONFIG_TARGET_mediatek=y CONFIG_TARGET_mediatek_filogic=y CONFIG_TARGET_BOARD=mediatek CONFIG_TARGET_SUBTARGET=filogic CONFIG_PACKAGE_nikki=m CONFIG_PACKAGE_luci-app-nikki=m > .config && make defconfig > /dev/null
+      - name: Write config and defconfig
+        run: |
+          cd sdk
+          echo CONFIG_TARGET_mediatek=y > .config
+          echo CONFIG_TARGET_mediatek_filogic=y >> .config
+          echo CONFIG_TARGET_BOARD=mediatek >> .config
+          echo CONFIG_TARGET_SUBTARGET=filogic >> .config
+          echo CONFIG_PACKAGE_nikki=m >> .config
+          echo CONFIG_PACKAGE_luci-app-nikki=m >> .config
+          make defconfig > /dev/null
 
-      - name: Compile
+      - name: Compile nikki
         run: |
           cd sdk
           make package/nikki/compile -j$(nproc) V=s
 
-      - name: Upload
+      - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: nikki-mediatek-filogic-24.10
