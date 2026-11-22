@@ -1,0 +1,58 @@
+name: build-packages
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y zstd wget
+
+      - name: Download SDK
+        run: |
+          SDK_URL="https://downloads.immortalwrt.org/releases/24.10.6/targets/mediatek/filogic/immortalwrt-sdk-24.10.6-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+          wget -q -O sdk.tar.zst "$SDK_URL"
+          zstd -d sdk.tar.zst
+          tar -xf sdk.tar
+          mv $(ls -d immortalwrt-sdk-*) sdk
+
+      - name: Register nikki feed (binary release branch)
+        run: |
+          cd sdk
+          echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;binary" >> feeds.conf.default
+
+      - name: Feeds update & install
+        run: |
+          cd sdk
+          ./scripts/feeds update nikki
+          ./scripts/feeds install nikki
+
+      - name: Patch nikki remove kmod-dummy
+        run: |
+          cd sdk
+          sed -i 's/ +kmod-dummy//g' feeds/nikki/nikki/Makefile
+
+      - name: Write config
+        run: |
+          cd sdk
+          echo CONFIG_TARGET_mediatek=y > .config
+          echo CONFIG_TARGET_mediatek_filogic=y >> .config
+          echo CONFIG_TARGET_BOARD=mediatek >> .config
+          echo CONFIG_TARGET_SUBTARGET=filogic >> .config
+          echo CONFIG_PACKAGE_nikki=m >> .config
+          make defconfig > /dev/null
+
+      - name: Compile nikki
+        run: |
+          cd sdk
+          make package/feeds/nikki/nikki/compile -j$(nproc) V=s
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: nikki-mediatek-filogic-24.10
+          path: sdk/bin/packages/aarch64_cortex-a53/nikki
