@@ -7,11 +7,15 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
+      - name: Install golang & zstd
+        run: |
+          apt update
+          apt install -y zstd golang-go
+
       - name: Download SDK
         run: |
           SDK_URL="https://downloads.immortalwrt.org/releases/24.10.6/targets/mediatek/filogic/immortalwrt-sdk-24.10.6-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
           wget -q -O sdk.tar.zst "$SDK_URL"
-          apt update && apt install -y zstd
           zstd -d sdk.tar.zst
           tar -xf sdk.tar
           mv $(ls -d immortalwrt-sdk-*) sdk
@@ -20,7 +24,6 @@ jobs:
         run: |
           cd sdk
           echo "src-git nikki https://github.com/nikkinikki-org/OpenWrt-nikki.git;main" >> feeds.conf.default
-          cat feeds.conf.default
 
       - name: Feeds update & install
         run: |
@@ -28,43 +31,10 @@ jobs:
           ./scripts/feeds update nikki
           ./scripts/feeds install nikki
 
-      - name: Patch nikki (remove kmod-dummy)
+      - name: Patch nikki remove kmod-dummy
         run: |
           cd sdk
           sed -i 's/ +kmod-dummy//g' feeds/nikki/nikki/Makefile
-
-      - name: Patch mihomo-alpha to use prebuilt binary
-        run: |
-          cd sdk/feeds/nikki/mihomo-alpha
-          printf 'include $(TOPDIR)/rules.mk\n' > Makefile
-          printf 'PKG_NAME:=mihomo-alpha\n' >> Makefile
-          printf 'PKG_VERSION:=v1.18.7\n' >> Makefile
-          printf 'PKG_RELEASE:=1\n' >> Makefile
-          printf 'PKG_SOURCE:=mihomo-linux-arm64\n' >> Makefile
-          printf 'PKG_SOURCE_URL:=https://github.com/MetaCubeX/mihomo/releases/download/v1.18.7/\n' >> Makefile
-          printf 'PKG_HASH:=skip\n' >> Makefile
-          printf 'PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)\n' >> Makefile
-          printf 'PKG_BUILD_PARALLEL:=0\n' >> Makefile
-          printf 'include $(INCLUDE_DIR)/package.mk\n' >> Makefile
-          printf 'define Package/mihomo-alpha\n' >> Makefile
-          printf '  SECTION:=net\n' >> Makefile
-          printf '  CATEGORY:=Network\n' >> Makefile
-          printf '  TITLE:=Mihomo Alpha\n' >> Makefile
-          printf '  DEPENDS:=@(aarch64) +ca-bundle\n' >> Makefile
-          printf '  URL:=https://github.com/MetaCubeX/mihomo\n' >> Makefile
-          printf 'endef\n' >> Makefile
-          printf 'define Build/Prepare\n' >> Makefile
-          printf '\tmkdir -p $(PKG_BUILD_DIR)\n' >> Makefile
-          printf '\twget -qO $(PKG_BUILD_DIR)/mihomo $(PKG_SOURCE_URL)/mihomo-linux-arm64-v1.18.7\n' >> Makefile
-          printf '\tchmod +x $(PKG_BUILD_DIR)/mihomo\n' >> Makefile
-          printf 'endef\n' >> Makefile
-          printf 'define Build/Compile\n' >> Makefile
-          printf 'endef\n' >> Makefile
-          printf 'define Package/mihomo-alpha/install\n' >> Makefile
-          printf '\t$(INSTALL_DIR) $(1)/usr/bin\n' >> Makefile
-          printf '\t$(INSTALL_BIN) $(PKG_BUILD_DIR)/mihomo $(1)/usr/bin/mihomo\n' >> Makefile
-          printf 'endef\n' >> Makefile
-          printf '$(eval $(call BuildPackage,mihomo-alpha))\n' >> Makefile
 
       - name: Write config
         run: |
@@ -74,10 +44,9 @@ jobs:
           echo CONFIG_TARGET_BOARD=mediatek >> .config
           echo CONFIG_TARGET_SUBTARGET=filogic >> .config
           echo CONFIG_PACKAGE_nikki=m >> .config
-          echo CONFIG_PACKAGE_mihomo-alpha=m >> .config
           make defconfig > /dev/null
 
-      - name: Compile nikki only
+      - name: Compile nikki
         run: |
           cd sdk
           make package/feeds/nikki/nikki/compile -j$(nproc) V=s
