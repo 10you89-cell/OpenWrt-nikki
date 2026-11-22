@@ -30,6 +30,7 @@ jobs:
           cd sdk
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          ls -la package/feeds/nikki/
 
       - name: Write config and defconfig
         run: |
@@ -45,7 +46,7 @@ jobs:
       - name: Compile nikki
         run: |
           cd sdk
-          make package/nikki/compile -j$(nproc) V=s
+          make package/feeds/nikki/nikki/compile -j$(nproc) V=s
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
