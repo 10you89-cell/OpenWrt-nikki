@@ -4,34 +4,28 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.arch }}-${{ matrix.branch }} build
+    name: build
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        arch:
-          - aarch64_cortex-a53
-        branch:
-          - openwrt-24.10
-
     steps:
-      - name: Download ImmortalWrt SDK
+      - name: Download ImmortalWrt 24.10.6 SDK mediatek/filogic
         run: |
-          SDK_URL="https://downloads.immortalwrt.org/releases/${{ matrix.branch }}/targets/mediatek/filogic/immortalwrt-sdk-${{ matrix.branch }}-mediatek-filogic_gcc-13.2.0_musl.Linux-x86_64.tar.xz"
-          wget -q -O sdk.tar.xz "$SDK_URL"
-          tar -Jxf sdk.tar.xz
+          SDK_URL="https://mirror.zju.edu.cn/immortalwrt/releases/24.10.6/targets/mediatek/filogic/immortalwrt-sdk-24.10.6-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
+          wget -q -O sdk.tar.zst "$SDK_URL"
+          apt update && apt install -y zstd
+          zstd -d sdk.tar.zst
+          tar -xf sdk.tar
           mv $(ls -d immortalwrt-sdk-*) sdk
       
-      - name: Prepare nikki source and patch
+      - name: Prepare nikki source and patch (remove kmod-dummy)
         run: |
           cd sdk
           git clone https://github.com/nikkinikki-org/OpenWrt-nikki.git feeds/nikki
           cd feeds/nikki/nikki
           sed -i 's/ +kmod-dummy//g' Makefile
-          echo "==== 已经修改后的Makefile ===="
+          echo "==== Patched Makefile ===="
           cat Makefile
 
-      - name: Feeds install & compile
+      - name: Feeds update & compile
         run: |
           cd sdk
           ./scripts/feeds update nikki
@@ -41,5 +35,5 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: nikki_${{ matrix.arch }}-${{ matrix.branch }}
-          path: sdk/bin/packages/${{ matrix.arch }}/nikki
+          name: nikki-mediatek-filogic-24.10.6
+          path: sdk/bin/packages/aarch64_cortex-a53/nikki
