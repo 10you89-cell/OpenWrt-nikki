@@ -7,7 +7,7 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     steps:
-      - name: Download ImmortalWrt 24.10.6 SDK mediatek/filogic official
+      - name: Download SDK
         run: |
           SDK_URL="https://downloads.immortalwrt.org/releases/24.10.6/targets/mediatek/filogic/immortalwrt-sdk-24.10.6-mediatek-filogic_gcc-13.3.0_musl.Linux-x86_64.tar.zst"
           wget -q -O sdk.tar.zst "$SDK_URL"
@@ -15,8 +15,8 @@ jobs:
           zstd -d sdk.tar.zst
           tar -xf sdk.tar
           mv $(ls -d immortalwrt-sdk-*) sdk
-      
-      - name: Prepare nikki source and patch (remove kmod-dummy dependency)
+
+      - name: Patch nikki
         run: |
           cd sdk
           rm -rf feeds/nikki
@@ -25,29 +25,21 @@ jobs:
           sed -i 's/ +kmod-dummy//g' Makefile
           cat Makefile
 
-      - name: Feeds update and install
+      - name: Feeds
         run: |
           cd sdk
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
-      - name: Generate base config & defconfig
-        run: |
-          cd sdk
-          echo "CONFIG_TARGET_mediatek=y" > .config
-          echo "CONFIG_TARGET_mediatek_filogic=y" >> .config
-          echo "CONFIG_TARGET_BOARD=mediatek" >> .config
-          echo "CONFIG_TARGET_SUBTARGET=filogic" >> .config
-          echo "CONFIG_PACKAGE_nikki=m" >> .config
-          echo "CONFIG_PACKAGE_luci-app-nikki=m" >> .config
-          make defconfig > /dev/null
+      - name: Write config
+        run: cd sdk && printf '%s\n' CONFIG_TARGET_mediatek=y CONFIG_TARGET_mediatek_filogic=y CONFIG_TARGET_BOARD=mediatek CONFIG_TARGET_SUBTARGET=filogic CONFIG_PACKAGE_nikki=m CONFIG_PACKAGE_luci-app-nikki=m > .config && make defconfig > /dev/null
 
-      - name: Build nikki package only
+      - name: Compile
         run: |
           cd sdk
           make package/nikki/compile -j$(nproc) V=s
 
-      - name: Upload artifacts
+      - name: Upload
         uses: actions/upload-artifact@v7
         with:
           name: nikki-mediatek-filogic-24.10
