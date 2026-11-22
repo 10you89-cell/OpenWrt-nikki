@@ -44,12 +44,13 @@ jobs:
           sed -i 's/ +kmod-dummy//g' Makefile
           cat Makefile
 
-      - name: Generate target config (mediatek/filogic)
+      - name: Set target & Generate .config
         run: |
           cd openwrt
-          # 生成 mediatek/filogic 平台基础配置
-          ./scripts/gen_config.py target mediatek filogic
-          # 追加需要编译的包
+          # 设置目标平台
+          echo "CONFIG_TARGET=mediatek" > .config
+          echo "CONFIG_TARGET_SUBTARGET=filogic" >> .config
+          echo "CONFIG_TARGET_PROFILE=DEVICE_mt7981_cmcc_rax3000m" >> .config
           echo "CONFIG_PACKAGE_mihomo-meta=y" >> .config
           echo "CONFIG_PACKAGE_nikki=y" >> .config
           echo "CONFIG_PACKAGE_luci-app-nikki=y" >> .config
